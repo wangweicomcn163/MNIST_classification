@@ -1,8 +1,5 @@
 #this script is the classifer for digit recognization. 
 
-#configure multicore
-library
-
 #load training and testing data sets
 training <- read.csv('Digit recognizer/train.csv')
 testing <- read.csv('Digit recognizer/test.csv')
@@ -23,14 +20,40 @@ for (i in 1:30) {
 
 #train rf model
 library(caret)
+library(randomForest)
+library(foreach)
+library(doSNOW)
 ctrl <- trainControl(method = 'repeatedcv',
-                     number = 10,
+                     number = 2,
                      repeats = 1)
+set.seed(0)
+rows <- sample(1:42000, 10000)
+
+ptm <- proc.time()  #start the clock
 modelfit <-
         train(label ~ .,
-              data = training[sample(1:42000, 1000), ],
+              data = training[rows,],
               method = 'rf',
-              trControl = ctrl)
+              trControl = ctrl,
+              ntree=100)
+proc.time()-ptm   #stop the clock
+
+
+
+cl <- makeCluster(2) #register 2 cores
+registerDoSNOW(cl)
+ptm <- proc.time()  #start the clock
+rf <- foreach(ntree = rep(100, 4),
+                .combine = combine,
+                .packages = 'randomForest') %dopar% {
+                        randomForest(training[rows,-1], training[rows, 1], 
+                                     ntree = ntree)
+                }
+proc.time()-ptm   #stop the clock
+stopCluster(cl)
+#print confusion matrix of predition by rf
+confusionMatrix(predict(rf,training),training$label)
+
 
 #predict
 pred <- predict(modelfit,testing)
