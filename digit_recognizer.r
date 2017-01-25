@@ -18,6 +18,11 @@ for (i in 1:30) {
               col = grey(seq(0, 1, length = 256)))
 }
 
+
+
+
+
+
 #train rf model
 library(caret)
 library(randomForest)
@@ -29,17 +34,28 @@ ctrl <- trainControl(method = 'repeatedcv',
 set.seed(0)
 rows <- sample(1:42000, 10000)
 
+
+
+#use multicore and caret packages for parallel computing
 ptm <- proc.time()  #start the clock
+cl <- makeCluster(2) #register 2 cores
+registerDoSNOW(cl)
 modelfit <-
         train(label ~ .,
               data = training[rows,],
               method = 'rf',
               trControl = ctrl,
               ntree=100)
+stopCluster(cl)
 proc.time()-ptm   #stop the clock
+#predict
+pred <- predict(modelfit,testing)
 
 
 
+
+
+#use multicore, foreach and randomforest packages for parallel computing
 cl <- makeCluster(2) #register 2 cores
 registerDoSNOW(cl)
 ptm <- proc.time()  #start the clock
@@ -49,14 +65,16 @@ rf <- foreach(ntree = rep(100, 4),
                         randomForest(training[rows,-1], training[rows, 1], 
                                      ntree = ntree)
                 }
-proc.time()-ptm   #stop the clock
 stopCluster(cl)
+proc.time()-ptm   #stop the clock
 #print confusion matrix of predition by rf
 confusionMatrix(predict(rf,training),training$label)
 
 
-#predict
-pred <- predict(modelfit,testing)
+
+
+
+
 
 #display the first thirty samples from testing dataset
 par(mar = c(rep(0.1, 4)))   #set margin to 0.1
