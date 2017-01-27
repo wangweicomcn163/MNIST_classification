@@ -1,12 +1,11 @@
 #this script is the classifer for digit recognization. 
 
-#load training and testing data sets
+#=================load training and testing data sets==========================
 training <- read.csv('Digit recognizer/train.csv')
 testing <- read.csv('Digit recognizer/test.csv')
 
-#convert labels to factors
-training$label <- as.factor(training$label)
 
+#=================Display sample images========================================
 #display the first thirty samples from training dataset
 par(mar = c(rep(0.1, 4)))   #set margin to 0.1
 par(mfrow = c(6, 5))   #set plot array to 6 (row) by 5 (col)
@@ -18,12 +17,18 @@ for (i in 1:30) {
               col = grey(seq(0, 1, length = 256)))
 }
 
+#=================preprocess data==============================================
+training$label <- as.factor(training$label)
+
+#remove nzv from training dataset 
+nzv_col <- nzv(training)
+training.preproc <- training[,-nzv_col]
 
 
 
 
 
-#train rf model
+#=================train rf in caret============================================
 library(caret)
 library(randomForest)
 library(foreach)
@@ -54,7 +59,7 @@ pred <- predict(modelfit,testing)
 
 
 
-
+#=================train rf in randomforest=====================================
 #use multicore, foreach and randomforest packages for parallel computing
 cl <- makeCluster(2) #register 2 cores
 registerDoSNOW(cl)
@@ -75,7 +80,7 @@ confusionMatrix(predict(rf,training),training$label)
 
 
 
-
+#=================Display sample images========================================
 #display the first thirty samples from testing dataset
 par(mar = c(rep(0.1, 4)))   #set margin to 0.1
 par(mfrow = c(6, 5))   #set plot array to 6 (row) by 5 (col)
